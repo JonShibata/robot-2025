@@ -25,6 +25,20 @@ public class ArmTest {
   @Test
   public void testArmFunctions() {
 
+    // Test the arm rate limit (no limiting, clip high, clip low)
+    assertEquals(arm.calcRateLimit(37.5, 37.0, 1.0), 37.5, TOLERANCE);
+    assertEquals(arm.calcRateLimit(99.0, 37.0, 1.0), 38.0, TOLERANCE);
+    assertEquals(arm.calcRateLimit(-99.0, 37.0, 1.0), 36.0, TOLERANCE);
+
+    // Test the arm clamp (no clamping, clip high, clip low)
+    assertEquals(arm.calcClamp(24.0, -37.0, 37.0), 24.0, TOLERANCE);
+    assertEquals(arm.calcClamp(99.0, -37.0, 37.0), 37.0, TOLERANCE);
+    assertEquals(arm.calcClamp(-99.0, -37.0, 37.0), -37.0, TOLERANCE);
+
+    // Test the arm PID direction (going negative should give negative output)
+    assertTrue(arm.calcPID(0.0, -90.0) < 0.0);
+    assertTrue(arm.calcPID(-90.0, 0.0) > 0.0);
+
     // Vertical Feed Forward should be 0.0
     assertEquals(0.0, arm.calcFeedForward(Constants.Arm.verticalCounts), TOLERANCE);
 
@@ -33,19 +47,5 @@ public class ArmTest {
         Constants.Arm.gravityFeedForward,
         arm.calcFeedForward(Constants.Arm.horizontalCounts),
         TOLERANCE);
-
-    // Test the arm clamp
-    assertEquals(arm.calcClamp(0.5, 0.0, 1.0), 0.5, TOLERANCE);
-    assertEquals(arm.calcClamp(1.5, 0.0, 1.0), 1.0, TOLERANCE);
-    assertEquals(arm.calcClamp(-1.5, 0.0, 1.0), 0.0, TOLERANCE);
-
-    // Test the arm rate limit
-    assertEquals(arm.calcRateLimit(0.5, 0.0, 1.0), 0.5, TOLERANCE);
-    assertEquals(arm.calcRateLimit(1.5, 0.0, 1.0), 1.0, TOLERANCE);
-    assertEquals(arm.calcRateLimit(-1.5, 0.0, 1.0), -1.0, TOLERANCE);
-
-    // Test the arm PID direction
-    assertTrue(arm.calcPID(0.0, -90.0) < 0.0);
-    assertTrue(arm.calcPID(-90.0, 0.0) > 0.0);
   }
 }

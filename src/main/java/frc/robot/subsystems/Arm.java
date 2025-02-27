@@ -32,6 +32,7 @@ public class Arm extends SubsystemBase {
   private double desiredPosition = 0.0;
   private double desiredPositionRateLimited = 0.0;
   private double desiredPositionRateLimitedClamped = 0.0;
+  private double gravityFeedForward = Constants.Arm.gravityFeedForward;
 
   private PIDController controller =
       new PIDController(Constants.Arm.kp, Constants.Arm.ki, Constants.Arm.kd);
@@ -47,46 +48,20 @@ public class Arm extends SubsystemBase {
     motorArm.setInverted(true);
   }
 
-  public void setMotor(double speed) {
-    desiredSpeed = speed * 0.5;
+  public void setPID(double kp, double ki, double kd) {
+    controller.setPID(kp, ki, kd);
   }
 
-  public void raise() {
-    desiredSpeed = Constants.Arm.armSpeed;
-  }
-
-  public void stop() {
-    desiredSpeed = 0;
-  }
-
-  public Boolean armAtMax() {
-    double position = getPosition();
-    if (position > Constants.Arm.armEncoderUpperLimit) {
-      System.out.println("Upper Arm Limit Reached");
-      return true;
-    }
-    return false;
-  }
-
-  public Boolean armAtMin() {
-    double position = getPosition();
-    if (position < Constants.Arm.armEncoderLowerLimit) {
-      System.out.println("Lower Arm Limit Reached");
-      return true;
-    }
-    return false;
-  }
-
-  public double getPosition() {
-    return encoderArm.get();
+  public void setGravityFeedForward(double gravityFeedForward) {
+    this.gravityFeedForward = gravityFeedForward;
   }
 
   public void setDesiredPosition(double position) {
     desiredPosition = position;
   }
 
-  public double calcRateLimit(double desiredPos, double currentPos, double rateLimit) {
-    return MathUtil.clamp(desiredPos, currentPos - rateLimit, currentPos + rateLimit);
+  public double calcRateLimit(double desiredPos, double desiredPosPrev, double rateLimit) {
+    return MathUtil.clamp(desiredPos, desiredPosPrev - rateLimit, desiredPosPrev + rateLimit);
   }
 
   public double calcClamp(double desiredPos, double lowLimit, double highLimit) {
@@ -99,23 +74,25 @@ public class Arm extends SubsystemBase {
 
   public double calcFeedForward(double encoderCounts) {
     return Math.sin((encoderCounts - Constants.Arm.verticalCounts) / Constants.Arm.countsPerRadian)
-        * Constants.Arm.gravityFeedForward;
+        * gravityFeedForward;
   }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
-    SmartDashboard.putNumber("Arm-Pos", getPosition());
+
+    SmartDashboard.putNumber("Arm-Pos", motorArm.getPosition().getValueAsDouble());
     SmartDashboard.putNumber("Arm-Velo", motorArm.getVelocity().getValueAsDouble());
     SmartDashboard.putNumber("Arm-Encoder", encoderArm.get());
 
     desiredPositionRateLimited =
-        calcRateLimit(desiredPosition, getPosition(), Constants.Arm.RateLimit);
+        calcRateLimit(desiredPosition, desiredPositionRateLimited, Constants.Arm.RateLimit);
+
     desiredPositionRateLimitedClamped =
         calcClamp(
             desiredPositionRateLimited, Constants.Arm.reverseLimit, Constants.Arm.forwardLimit);
-    pidOutput = calcPID(getPosition(), desiredPositionRateLimitedClamped);
-    feedForward = calcFeedForward(getPosition());
+
+    pidOutput = calcPID(encoderArm.get(), desiredPositionRateLimitedClamped);
+    feedForward = calcFeedForward(encoderArm.get());
     motorArm.set(pidOutput + feedForward);
 
     SmartDashboard.putNumber("Arm-FF", feedForward);
@@ -130,6 +107,10 @@ public class Arm extends SubsystemBase {
   }
 
   public Command manualArm(DoubleSupplier speed) {
-    return this.run(() -> setMotor(speed.getAsDouble()));
+    return this.run(() -> motorArm.set(speed.getAsDouble() * 0.5));
+  }
+
+  public void stop() {
+    motorArm.set(0);
   }
 }

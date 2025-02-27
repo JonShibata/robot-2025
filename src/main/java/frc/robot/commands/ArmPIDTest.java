@@ -5,33 +5,29 @@
 package frc.robot.commands;
 
 import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.subsystems.Arm;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
 public class ArmPIDTest extends Command {
-  private PIDController pid;
   private ArmFeedforward feedforward;
   private final Arm arm;
   private double feedForward;
 
   /** Creates a new ArmPIDTest. */
   public ArmPIDTest(Arm arm) {
-    // Use addRequirements() here to declare subsystem dependencies.
-    this.arm = arm;
-    pid = new PIDController(0, 0, 0);
-    feedforward = new ArmFeedforward(0, 0, 0);
 
-    SmartDashboard.putNumber("Arm P", 0);
-    SmartDashboard.putNumber("Arm I", 0);
-    SmartDashboard.putNumber("Arm D", 0);
-    // SmartDashboard.putNumber("Arm kS", 0);
-    // SmartDashboard.putNumber("Arm kG", 0);
-    // SmartDashboard.putNumber("Arm kV", 0);
-    SmartDashboard.putNumber("Arm Des Pos", 0);
-    SmartDashboard.putNumber("Arm FF", 0);
+    addRequirements(arm);
+    this.arm = arm;
+    // feedforward = new ArmFeedforward(0, 0, 0);
+
+    SmartDashboard.putNumber("Arm-P", Constants.Arm.kp);
+    SmartDashboard.putNumber("Arm-I", Constants.Arm.ki);
+    SmartDashboard.putNumber("Arm-D", Constants.Arm.kd);
+    SmartDashboard.putNumber("Arm-FF", Constants.Arm.gravityFeedForward);
+    SmartDashboard.putNumber("Arm-Des-Pos", 0);
   }
 
   // Called when the command is initially scheduled.
@@ -41,20 +37,14 @@ public class ArmPIDTest extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    pid.setP(SmartDashboard.getNumber("Arm P", 0));
-    pid.setI(SmartDashboard.getNumber("Arm I", 0));
-    pid.setD(SmartDashboard.getNumber("Arm D", 0));
-    // feedforward.setKa(SmartDashboard.getNumber("Arm kS", 0));
-    // feedforward.setKg(SmartDashboard.getNumber("Arm kG", 0));
-    // feedforward.setKv(SmartDashboard.getNumber("Arm kV", 0));
 
-    // calcFeedForward(arm.encoderArm.get());
+    arm.setPID(
+        SmartDashboard.getNumber("Arm-P", 0),
+        SmartDashboard.getNumber("Arm-I", 0),
+        SmartDashboard.getNumber("Arm-D", 0));
 
-    // SmartDashboard.putNumber("Arm FF", feedForward);
-
-    // double output = pid.calculate(arm.getPosition(), SmartDashboard.getNumber("Arm Des Pos", 0))
-    // + feedForward;
-    // arm.setMotor(MathUtil.clamp(output, -0.4, 0.4));
+    arm.setGravityFeedForward(SmartDashboard.getNumber("Arm-FF", 0));
+    arm.setDesiredPosition(SmartDashboard.getNumber("Arm-Des-Pos", 0));
   }
 
   // Called once the command ends or is interrupted.
