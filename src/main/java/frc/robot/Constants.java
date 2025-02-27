@@ -47,12 +47,14 @@ public final class Constants {
     public static final double ki = 0.05;
     public static final double kd = 0;
     public static final double reverseLimit = -450;
-    public static final double forewardLimit = -10;
+    public static final double forwardLimit = -10;
     public static final double testPosition = -380;
-    public static final int verticleCounts = 192;
+
+    public static final int verticalCounts = 192;
     public static final int horizontalCounts = 664;
     public static final int countsPerRadian = 300;
     public static final double gravityFeedForward = 0.07;
+    public static final double RateLimit = 1.0;
   }
 
   public static class Claw {

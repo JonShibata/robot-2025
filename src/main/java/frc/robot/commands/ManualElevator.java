@@ -25,7 +25,7 @@ public class ManualElevator extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    m_arm.setPosition(Constants.Arm.safe_pos);
+    m_arm.setDesiredPosition(Constants.Arm.safe_pos);
   }
 
   // Called every time the scheduler runs while the command is scheduled.

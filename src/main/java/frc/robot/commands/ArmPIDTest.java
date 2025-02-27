@@ -4,12 +4,10 @@
 
 package frc.robot.commands;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Constants;
 import frc.robot.subsystems.Arm;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
@@ -17,6 +15,7 @@ public class ArmPIDTest extends Command {
   private PIDController pid;
   private ArmFeedforward feedforward;
   private final Arm arm;
+  private double feedForward;
 
   /** Creates a new ArmPIDTest. */
   public ArmPIDTest(Arm arm) {
@@ -28,10 +27,10 @@ public class ArmPIDTest extends Command {
     SmartDashboard.putNumber("Arm P", 0);
     SmartDashboard.putNumber("Arm I", 0);
     SmartDashboard.putNumber("Arm D", 0);
-    //SmartDashboard.putNumber("Arm kS", 0);
-    //SmartDashboard.putNumber("Arm kG", 0);
-    //SmartDashboard.putNumber("Arm kV", 0);
-    SmartDashboard.putNumber("Arm-Test-Pos", 0);
+    // SmartDashboard.putNumber("Arm kS", 0);
+    // SmartDashboard.putNumber("Arm kG", 0);
+    // SmartDashboard.putNumber("Arm kV", 0);
+    SmartDashboard.putNumber("Arm Des Pos", 0);
     SmartDashboard.putNumber("Arm FF", 0);
   }
 
@@ -45,13 +44,17 @@ public class ArmPIDTest extends Command {
     pid.setP(SmartDashboard.getNumber("Arm P", 0));
     pid.setI(SmartDashboard.getNumber("Arm I", 0));
     pid.setD(SmartDashboard.getNumber("Arm D", 0));
-    //feedforward.setKa(SmartDashboard.getNumber("Arm kS", 0));
-    //feedforward.setKg(SmartDashboard.getNumber("Arm kG", 0));
-   // feedforward.setKv(SmartDashboard.getNumber("Arm kV", 0));
-    SmartDashboard.getNumber("Arm-Test-Pos", 0);
-    SmartDashboard.putNumber("Arm FF", Math.sin((arm.encoderArm.get() - Constants.Arm.verticleCounts)/Constants.Arm.countsPerRadian));
-    double output = pid.calculate(arm.getPosition(), SmartDashboard.getNumber("Arm Test Pos", 0)) + (Constants.Arm.gravityFeedForward * Math.sin((arm.encoderArm.get() - Constants.Arm.verticleCounts)/Constants.Arm.countsPerRadian));
-    arm.setMotor(MathUtil.clamp(output, -0.4, 0.4));
+    // feedforward.setKa(SmartDashboard.getNumber("Arm kS", 0));
+    // feedforward.setKg(SmartDashboard.getNumber("Arm kG", 0));
+    // feedforward.setKv(SmartDashboard.getNumber("Arm kV", 0));
+
+    // calcFeedForward(arm.encoderArm.get());
+
+    // SmartDashboard.putNumber("Arm FF", feedForward);
+
+    // double output = pid.calculate(arm.getPosition(), SmartDashboard.getNumber("Arm Des Pos", 0))
+    // + feedForward;
+    // arm.setMotor(MathUtil.clamp(output, -0.4, 0.4));
   }
 
   // Called once the command ends or is interrupted.

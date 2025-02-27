@@ -23,9 +23,15 @@ public class Arm extends SubsystemBase {
 
   private TalonFXSimState motorArmSim;
 
-  public Encoder encoderArm = new Encoder(1, 2);
+  private Encoder encoderArm = new Encoder(1, 2);
 
   private double desiredSpeed = 0;
+
+  private double pidOutput = 0.0;
+  private double feedForward = 0.0;
+  private double desiredPosition = 0.0;
+  private double desiredPositionRateLimited = 0.0;
+  private double desiredPositionRateLimitedClamped = 0.0;
 
   private PIDController controller =
       new PIDController(Constants.Arm.kp, Constants.Arm.ki, Constants.Arm.kd);
@@ -35,7 +41,7 @@ public class Arm extends SubsystemBase {
       motorArmSim = new TalonFXSimState(motorArm);
     }
 
-    motorArm.setPosition(0);
+    motorArm.setPosition(0.0);
 
     motorArm.setNeutralMode(NeutralModeValue.Brake);
     motorArm.setInverted(true);
@@ -53,12 +59,8 @@ public class Arm extends SubsystemBase {
     desiredSpeed = 0;
   }
 
-  public void setPosition(double position) {
-    desiredSpeed = controller.calculate(encoderArm.get(), position) + Math.sin((encoderArm.get() - Constants.Arm.verticleCounts)/Constants.Arm.countsPerRadian);
-  }
-
   public Boolean armAtMax() {
-    double position = motorArm.getPosition().getValueAsDouble();
+    double position = getPosition();
     if (position > Constants.Arm.armEncoderUpperLimit) {
       System.out.println("Upper Arm Limit Reached");
       return true;
@@ -67,7 +69,7 @@ public class Arm extends SubsystemBase {
   }
 
   public Boolean armAtMin() {
-    double position = motorArm.getPosition().getValueAsDouble();
+    double position = getPosition();
     if (position < Constants.Arm.armEncoderLowerLimit) {
       System.out.println("Lower Arm Limit Reached");
       return true;
@@ -79,28 +81,51 @@ public class Arm extends SubsystemBase {
     return encoderArm.get();
   }
 
+  public void setDesiredPosition(double position) {
+    desiredPosition = position;
+  }
+
+  public double calcRateLimit(double desiredPos, double currentPos, double rateLimit) {
+    return MathUtil.clamp(desiredPos, currentPos - rateLimit, currentPos + rateLimit);
+  }
+
+  public double calcClamp(double desiredPos, double lowLimit, double highLimit) {
+    return MathUtil.clamp(desiredPos, lowLimit, highLimit);
+  }
+
+  public double calcPID(double currentPos, double desiredPos) {
+    return controller.calculate(currentPos, desiredPos);
+  }
+
+  public double calcFeedForward(double encoderCounts) {
+    return Math.sin((encoderCounts - Constants.Arm.verticalCounts) / Constants.Arm.countsPerRadian)
+        * Constants.Arm.gravityFeedForward;
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-    SmartDashboard.putNumber("Arm-Pos", motorArm.getPosition().getValueAsDouble());
+    SmartDashboard.putNumber("Arm-Pos", getPosition());
     SmartDashboard.putNumber("Arm-Velo", motorArm.getVelocity().getValueAsDouble());
     SmartDashboard.putNumber("Arm-Encoder", encoderArm.get());
-    SmartDashboard.putNumber("Arm-Desired-Speed", desiredSpeed);
 
-    if (desiredSpeed < 0 && encoderArm.get() <= Constants.Arm.reverseLimit) {
-      desiredSpeed = 0;
-    }
-    if (desiredSpeed > 0 && encoderArm.get() >= Constants.Arm.forewardLimit) {
-      desiredSpeed = 0;
-    }
-    desiredSpeed = MathUtil.applyDeadband(desiredSpeed, 0.05);
-    motorArm.set(desiredSpeed);
+    desiredPositionRateLimited =
+        calcRateLimit(desiredPosition, getPosition(), Constants.Arm.RateLimit);
+    desiredPositionRateLimitedClamped =
+        calcClamp(
+            desiredPositionRateLimited, Constants.Arm.reverseLimit, Constants.Arm.forwardLimit);
+    pidOutput = calcPID(getPosition(), desiredPositionRateLimitedClamped);
+    feedForward = calcFeedForward(getPosition());
+    motorArm.set(pidOutput + feedForward);
+
+    SmartDashboard.putNumber("Arm-FF", feedForward);
+    SmartDashboard.putNumber("Arm-PID", pidOutput);
   }
 
   public void simulationPeriodic() {
     motorArmSim.setSupplyVoltage(
         RobotController
-            .getBatteryVoltage()); // need to fix sim capabilites, find talon version of iterate
+            .getBatteryVoltage()); // need to fix sim capabilities, find talon version of iterate
     // function
   }
 
