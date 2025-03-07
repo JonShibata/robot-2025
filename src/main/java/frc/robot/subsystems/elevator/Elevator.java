@@ -7,16 +7,18 @@ package frc.robot.subsystems.elevator;
 import static edu.wpi.first.units.Units.*;
 
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.sim.SparkRelativeEncoderSim;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkFlex;
+
+import com.revrobotics.sim.SparkFlexSim;
+import edu.wpi.first.math.system.plant.DCMotor;
+
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
-// import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -47,7 +49,7 @@ public class Elevator extends SubsystemBase {
   private RelativeEncoder motorAlphaEncoder = motorAlpha.getEncoder();
   private RelativeEncoder motorBetaEncoder = motorBeta.getEncoder();
 
-  private SparkMaxSim motorSim;
+  private SparkFlexSim motorSim;
   private SparkRelativeEncoderSim motorSimEncoder;
 
   // private PIDController elevatorPid =
@@ -164,10 +166,9 @@ public class Elevator extends SubsystemBase {
 
     setCalculatedMotors(output, feedForward);
 
-    SmartDashboard.putNumber("PID Output", output);
-    SmartDashboard.putNumber("PID feedForward calculation", feedForward);
-    SmartDashboard.putNumber("PID Goal", m_controller.getGoal().position);
-    SmartDashboard.putNumber("Elevator Counter", counter);
+    SmartDashboard.putNumber("ePID Output", output);
+    SmartDashboard.putNumber("eFF", feedForward);
+    SmartDashboard.putNumber("eCounter", counter);
   }
 
   public Elevator() {
@@ -208,17 +209,17 @@ public class Elevator extends SubsystemBase {
         betaConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
 
     if (Constants.currentMode == Constants.Mode.SIM) {
-      // motorSim = new SparkFlexSim(motorAlpha, DCMotor.getNeo550(1));
+      motorSim = new SparkFlexSim(motorAlpha, DCMotor.getNeo550(1));
       motorSimEncoder = motorSim.getRelativeEncoderSim();
     }
   }
 
   @Override
   public void periodic() {
-    SmartDashboard.putNumber("Motor Alpha Speed", motorAlpha.get());
-    SmartDashboard.putNumber("Motor Alpha Position", motorAlphaEncoder.getPosition());
-    SmartDashboard.putBoolean("Elevator Limit Reached", !bottomLimit.get());
-    SmartDashboard.putNumber("Alpha Applied", motorAlpha.getAppliedOutput());
+    SmartDashboard.putNumber("eMotorA Speed", motorAlpha.get());
+    SmartDashboard.putNumber("eMotorA Pos", motorAlphaEncoder.getPosition());
+    SmartDashboard.putBoolean("eLimit Reached", !bottomLimit.get());
+    SmartDashboard.putNumber("eMotorA Applied", motorAlpha.getAppliedOutput());
 
     m_controller.setP(SmartDashboard.getNumber("eKp", 0));
     m_controller.setI(SmartDashboard.getNumber("eKi", 0));
@@ -228,6 +229,9 @@ public class Elevator extends SubsystemBase {
     m_feedforward.setKg(SmartDashboard.getNumber("eKg", 0));
     m_feedforward.setKs(SmartDashboard.getNumber("eKs", 0));
     m_feedforward.setKv(SmartDashboard.getNumber("eKv", 0));
+
+    SmartDashboard.putNumber("ePID Goal", m_controller.getGoal().position);
+    SmartDashboard.putNumber("ePID Target", m_controller.getSetpoint().position);
   }
 
   public void simulationPeriodic() {
